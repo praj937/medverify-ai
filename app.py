@@ -11,8 +11,10 @@ file = st.file_uploader("📄 Upload Document")
 if file:
     st.info("Analyzing document...")
 
+    # Extract text
     text = file.getvalue().decode("utf-8", errors="ignore")
 
+    # Simple logic
     doc_type = "Prescription" if "prescription" in text.lower() else "Medical Document"
     compliance = "Non-Compliant" if "overdose" in text.lower() else "Compliant"
     fake_prob = random.uniform(0, 1)
@@ -37,13 +39,24 @@ if file:
 
     st.divider()
 
+    # ✅ CHATBOT (FIXED + SMART)
     st.subheader("💬 Chatbot")
     query = st.text_input("Ask about the result")
 
     if query:
-        if "compliance" in query.lower():
-            st.write("The document was checked using basic STG rules.")
-        elif "fake" in query.lower():
-            st.write("Forgery probability is calculated using anomaly detection logic.")
+        q = query.lower()
+
+        if "compliance" in q:
+            st.write(f"The document is **{data['compliance']}** based on detected keywords like dosage rules.")
+
+        elif "fake" in q or "forgery" in q:
+            st.write(f"The forgery probability is **{data['fake_probability']:.2f}**. Higher means more suspicious.")
+
+        elif "type" in q or "document" in q:
+            st.write(f"This document is classified as **{data['document_type']}**.")
+
+        elif "why" in q:
+            st.write("The system checks keywords like 'overdose' or 'prescription' to determine results.")
+
         else:
-            st.write("Ask about compliance or fake detection.")
+            st.write("You can ask about compliance, forgery, or document type.")
