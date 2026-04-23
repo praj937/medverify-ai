@@ -24,7 +24,7 @@ def set_bg():
 
             .block-container {{
                 background: rgba(255, 255, 255, 0.25);
-                backdrop-filter: blur(12px);
+                backdrop-filter: blur(14px);
                 padding: 2rem;
                 border-radius: 20px;
                 border: 1px solid rgba(255,255,255,0.3);
@@ -54,10 +54,9 @@ st.title("🩺 MedVerify AI")
 st.markdown("""
 ### 🔍 AI System for:
 - Clinical Document Classification & STG Compliance  
-- Document Forgery Detection  
+- Document Forgery / Deepfake Detection  
 """)
 
-# 👨‍💻 CENTERED NAME (PREMIUM)
 st.markdown(
     "<h3 style='text-align: center;'>👨‍💻 Developed by Prajwal S Hiremath</h3>",
     unsafe_allow_html=True
@@ -66,50 +65,58 @@ st.markdown(
 st.markdown("---")
 
 # =========================
-# 🧠 STG FUNCTION
+# 🧠 STG LOGIC (Problem 1)
 # =========================
 def check_compliance(text):
     text = text.lower()
+    issues = []
 
     if "paracetamol 1000mg" in text:
-        return "Non-Compliant", "Paracetamol dosage exceeds safe limit"
+        issues.append("Excess paracetamol dosage")
 
     if "overdose" in text or "wrong dosage" in text:
-        return "Non-Compliant", "Unsafe dosage detected"
+        issues.append("Unsafe dosage detected")
 
     if "antibiotic" in text and "no diagnosis" in text:
-        return "Non-Compliant", "Antibiotic without diagnosis"
+        issues.append("Antibiotic without diagnosis")
 
-    return "Compliant", "All checks passed"
+    if issues:
+        return "Non-Compliant", issues
+    else:
+        return "Compliant", ["No violations detected"]
 
 # =========================
-# 🔍 FORGERY FUNCTION
+# 🔍 FORGERY LOGIC (Problem 2)
 # =========================
 def detect_forgery(text):
     text = text.lower()
-
-    suspicion = 0
+    score = 0
     reasons = []
 
+    # Missing key fields
     if "hospital" not in text:
-        suspicion += 0.2
+        score += 0.2
         reasons.append("Missing hospital information")
 
     if "doctor" not in text:
-        suspicion += 0.2
+        score += 0.2
         reasons.append("Missing doctor details")
 
+    # Repetition anomaly
     if text.count("doctor") > 5:
-        suspicion += 0.2
-        reasons.append("Unusual repetition detected")
+        score += 0.2
+        reasons.append("Unusual repetition pattern")
 
-    if any(word in text for word in ["fake", "edited", "tampered"]):
-        suspicion += 0.4
-        reasons.append("Suspicious keywords found")
+    # Suspicious keywords
+    suspicious_words = ["fake", "edited", "tampered", "scan copy"]
+    if any(w in text for w in suspicious_words):
+        score += 0.4
+        reasons.append("Suspicious keywords detected")
 
-    suspicion += random.uniform(0, 0.3)
+    # Random anomaly (simulated ML)
+    score += random.uniform(0, 0.3)
 
-    score = min(suspicion, 1.0)
+    score = min(score, 1.0)
     status = "🔴 Suspicious" if score > 0.6 else "🟢 Likely Genuine"
 
     return score, status, reasons
@@ -120,7 +127,7 @@ def detect_forgery(text):
 file = st.file_uploader("📄 Upload Medical Document")
 
 if file:
-    with st.spinner("Analyzing document..."):
+    with st.spinner("🔍 Running AI analysis..."):
         time.sleep(1.5)
 
         text = file.getvalue().decode("utf-8", errors="ignore")
@@ -136,21 +143,17 @@ if file:
             doc_type = "Medical Document"
 
         # =========================
-        # 🧠 STG
+        # ANALYSIS
         # =========================
-        compliance, reason = check_compliance(text)
+        compliance, compliance_issues = check_compliance(text)
+        fake_prob, status, forgery_reasons = detect_forgery(text)
 
-        # =========================
-        # 🔍 FORGERY
-        # =========================
-        fake_prob, status, reasons = detect_forgery(text)
-
-    st.success("Analysis Complete ✅")
+    st.success("✅ Analysis Complete")
 
     # =========================
-    # 📊 CLINICAL ANALYSIS
+    # 📊 SECTION 1
     # =========================
-    st.subheader("📌 Clinical Analysis")
+    st.subheader("📌 Clinical Analysis (Problem 1)")
 
     col1, col2 = st.columns(2)
 
@@ -163,27 +166,28 @@ if file:
         else:
             st.error("STG Compliance: ❌ Non-Compliant")
 
-    st.caption(f"Reason: {reason}")
+    st.write("### 🔍 Compliance Explanation:")
+    for issue in compliance_issues:
+        st.write(f"- {issue}")
 
     st.markdown("---")
 
     # =========================
-    # 🛡️ FORGERY DETECTION
+    # 📊 SECTION 2
     # =========================
-    st.subheader("🛡️ Forgery Detection")
+    st.subheader("🛡️ Forgery Detection (Problem 2)")
 
-    st.metric("Forgery Probability", f"{fake_prob:.2f}")
+    st.metric("Forgery Risk Score", f"{fake_prob:.2f}")
     st.write(f"**Status:** {status}")
 
-    # 📊 Progress bar
     st.progress(int(fake_prob * 100))
 
-    if reasons:
-        st.write("### 🔍 Detected Issues:")
-        for r in reasons:
+    if forgery_reasons:
+        st.write("### 🔍 Detected Anomalies:")
+        for r in forgery_reasons:
             st.write(f"- {r}")
     else:
-        st.write("No major issues detected")
+        st.write("No anomalies detected")
 
     st.markdown("---")
 
@@ -197,19 +201,25 @@ if file:
         q = query.lower()
 
         if "compliance" in q:
-            st.write(f"The document is **{compliance}** because {reason}.")
+            st.write(f"The document is **{compliance}** based on STG rules.")
 
         elif "fake" in q or "forgery" in q:
-            st.write(f"Forgery probability is **{fake_prob:.2f}**. Status: {status}.")
+            st.write(f"Forgery risk score is **{fake_prob:.2f}**, indicating {status}.")
 
         elif "why" in q:
-            st.write("The system checks dosage rules, missing fields, repetition patterns, and suspicious keywords.")
+            st.write("The system evaluates dosage rules, missing fields, anomaly patterns, and suspicious keywords.")
 
         elif "type" in q:
-            st.write(f"This document is classified as **{doc_type}**.")
+            st.write(f"The document is classified as **{doc_type}**.")
 
         else:
-            st.write("You can ask about compliance, forgery detection, or document type.")
+            st.write("Ask about compliance, forgery detection, or document type.")
+
+# =========================
+# ⚠️ DISCLAIMER
+# =========================
+st.markdown("---")
+st.info("⚠️ This is a prototype system. Advanced models like ClinicalBERT and CNN-based deepfake detection can be integrated for production use.")
 
 # =========================
 # 🏁 FOOTER
