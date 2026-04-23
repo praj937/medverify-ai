@@ -78,7 +78,7 @@ def check_compliance(text):
         issues.append("Unsafe dosage detected")
 
     if "antibiotic" in text and "no diagnosis" in text:
-        issues.append("Antibiotic without diagnosis")
+        issues.append("Antibiotic prescribed without diagnosis")
 
     if issues:
         return "Non-Compliant", issues
@@ -93,7 +93,6 @@ def detect_forgery(text):
     score = 0
     reasons = []
 
-    # Missing key fields
     if "hospital" not in text:
         score += 0.2
         reasons.append("Missing hospital information")
@@ -102,18 +101,15 @@ def detect_forgery(text):
         score += 0.2
         reasons.append("Missing doctor details")
 
-    # Repetition anomaly
     if text.count("doctor") > 5:
         score += 0.2
         reasons.append("Unusual repetition pattern")
 
-    # Suspicious keywords
     suspicious_words = ["fake", "edited", "tampered", "scan copy"]
     if any(w in text for w in suspicious_words):
         score += 0.4
         reasons.append("Suspicious keywords detected")
 
-    # Random anomaly (simulated ML)
     score += random.uniform(0, 0.3)
 
     score = min(score, 1.0)
@@ -132,9 +128,7 @@ if file:
 
         text = file.getvalue().decode("utf-8", errors="ignore")
 
-        # =========================
-        # 🧠 CLASSIFICATION
-        # =========================
+        # Classification
         if "prescription" in text.lower():
             doc_type = "Prescription"
         elif "discharge" in text.lower():
@@ -142,16 +136,13 @@ if file:
         else:
             doc_type = "Medical Document"
 
-        # =========================
-        # ANALYSIS
-        # =========================
         compliance, compliance_issues = check_compliance(text)
         fake_prob, status, forgery_reasons = detect_forgery(text)
 
     st.success("✅ Analysis Complete")
 
     # =========================
-    # 📊 SECTION 1
+    # 📊 PROBLEM 1
     # =========================
     st.subheader("📌 Clinical Analysis (Problem 1)")
 
@@ -173,7 +164,7 @@ if file:
     st.markdown("---")
 
     # =========================
-    # 📊 SECTION 2
+    # 📊 PROBLEM 2
     # =========================
     st.subheader("🛡️ Forgery Detection (Problem 2)")
 
@@ -181,6 +172,20 @@ if file:
     st.write(f"**Status:** {status}")
 
     st.progress(int(fake_prob * 100))
+
+    # 🔥 Risk Interpretation
+    st.write("### 📊 Risk Interpretation")
+    if fake_prob < 0.3:
+        st.success("Low Risk Document")
+    elif fake_prob < 0.6:
+        st.warning("Moderate Risk Document")
+    else:
+        st.error("High Risk Document")
+
+    # 🔥 AI Confidence
+    st.write("### 🧠 AI Confidence")
+    confidence = round(1 - abs(fake_prob - 0.5), 2)
+    st.write(f"Confidence Score: {confidence}")
 
     if forgery_reasons:
         st.write("### 🔍 Detected Anomalies:")
@@ -216,13 +221,14 @@ if file:
             st.write("Ask about compliance, forgery detection, or document type.")
 
 # =========================
-# ⚠️ DISCLAIMER
+# ⚠️ DATASET + DISCLAIMER
 # =========================
 st.markdown("---")
-st.info("⚠️ This is a prototype system. Advanced models like ClinicalBERT and CNN-based deepfake detection can be integrated for production use.")
+st.info("📂 Designed to work with structured healthcare datasets and document samples.")
+st.warning("⚠️ Prototype system. Advanced models like ClinicalBERT and CNN-based deepfake detection can enhance accuracy.")
 
 # =========================
 # 🏁 FOOTER
 # =========================
 st.markdown("---")
-st.caption("🚀 Built by Prajwal S Hiremath | Healthcare AI Hackathon Project")
+st.caption("🚀 Built by Prajwal SHiremath | Healthcare AI Hackathon Project")
