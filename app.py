@@ -1,8 +1,7 @@
 import streamlit as st
-from utils.stg_rules import check_compliance
-from utils.forgery_rules import detect_forgery
 import base64
 import time
+import random
 
 # =========================
 # 🎨 BACKGROUND + GLASS UI
@@ -42,8 +41,56 @@ def set_bg():
 # ⚙️ PAGE CONFIG
 # =========================
 st.set_page_config(page_title="MedVerify AI", layout="centered")
-
 set_bg()
+
+# =========================
+# 🧠 STG COMPLIANCE FUNCTION
+# =========================
+def check_compliance(text):
+    text = text.lower()
+
+    if "paracetamol 1000mg" in text:
+        return "Non-Compliant", "Paracetamol dosage exceeds safe limit"
+
+    if "overdose" in text or "wrong dosage" in text:
+        return "Non-Compliant", "Unsafe dosage detected"
+
+    if "antibiotic" in text and "no diagnosis" in text:
+        return "Non-Compliant", "Antibiotic without diagnosis"
+
+    return "Compliant", "All checks passed"
+
+# =========================
+# 🔍 FORGERY DETECTION FUNCTION
+# =========================
+def detect_forgery(text):
+    text = text.lower()
+
+    suspicion = 0
+    reasons = []
+
+    if "hospital" not in text:
+        suspicion += 0.2
+        reasons.append("Missing hospital information")
+
+    if "doctor" not in text:
+        suspicion += 0.2
+        reasons.append("Missing doctor details")
+
+    if text.count("doctor") > 5:
+        suspicion += 0.2
+        reasons.append("Unusual repetition detected")
+
+    if any(word in text for word in ["fake", "edited", "tampered"]):
+        suspicion += 0.4
+        reasons.append("Suspicious keywords found")
+
+    suspicion += random.uniform(0, 0.3)
+
+    score = min(suspicion, 1.0)
+    status = "🔴 Suspicious" if score > 0.6 else "🟢 Likely Genuine"
+
+    return score, status, reasons
 
 # =========================
 # 🏥 HEADER
@@ -63,14 +110,13 @@ st.markdown("---")
 file = st.file_uploader("📄 Upload Medical Document")
 
 if file:
-    # ⏳ Animated loading
     with st.spinner("Analyzing document..."):
         time.sleep(1.5)
 
         text = file.getvalue().decode("utf-8", errors="ignore")
 
         # =========================
-        # 🧠 DOCUMENT CLASSIFICATION
+        # 🧠 CLASSIFICATION
         # =========================
         if "prescription" in text.lower():
             doc_type = "Prescription"
@@ -80,12 +126,12 @@ if file:
             doc_type = "Medical Document"
 
         # =========================
-        # 🧠 STG COMPLIANCE
+        # 🧠 STG
         # =========================
         compliance, reason = check_compliance(text)
 
         # =========================
-        # 🔍 FORGERY DETECTION
+        # 🔍 FORGERY
         # =========================
         fake_prob, status, reasons = detect_forgery(text)
 
@@ -119,7 +165,7 @@ if file:
     st.metric("Forgery Probability", f"{fake_prob:.2f}")
     st.write(f"**Status:** {status}")
 
-    # 📊 Progress bar
+    # Progress bar
     st.progress(int(fake_prob * 100))
 
     if reasons:
